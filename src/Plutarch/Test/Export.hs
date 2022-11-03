@@ -1,4 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+-- WithExportEnv defines record selectors that are needed for TH optic generation but are otherwise
+-- unused, tripping this warning.
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Plutarch.Test.Export (
   -- * Types
@@ -60,8 +65,6 @@ import Data.Text (Text, unpack)
 import GHC.Exts (toList)
 import Optics.At (at')
 import Optics.Getter (to, view)
-import Optics.Label (LabelOptic (labelOptic))
-import Optics.Lens (A_Lens, lens)
 import Optics.Optic ((%), (%%))
 import Optics.Setter (over, set)
 import Optics.TH (makeFieldLabelsNoPrefix)
@@ -92,6 +95,20 @@ import Test.Tasty.Providers (
   testFailed,
   testPassed,
  )
+
+-- Note from Koz: the manual lenses are due to a weird interaction between TH
+-- and record syntax. I wasn't able to establish _why_ it was being weird, but
+-- when written this way, it behaves.
+data WithExportEnv (dat :: Type) (red :: Type) (info :: Type)
+  = WithExportEnv {
+    datum :: dat,
+    redeemer :: red,
+    context :: ScriptContext,
+    raws :: RawScriptExport,
+    info :: info
+  }
+
+makeFieldLabelsNoPrefix ''WithExportEnv
 
 {- | Typed parameters that are given to a script when testing. For minting
  policies, the redeemer is ignored; you can set it to '()' to keep the
@@ -566,47 +583,6 @@ runWithExport (WithExport comp) raw linker args = do
           raw
           (view #information linked)
   pure . coerce . snd . execRWS comp env $ ()
-
--- Note from Koz: the manual lenses are due to a weird interaction between TH
--- and record syntax. I wasn't able to establish _why_ it was being weird, but
--- when written this way, it behaves.
-data WithExportEnv (dat :: Type) (red :: Type) (info :: Type)
-  = WithExportEnv dat red ScriptContext RawScriptExport info
-
-instance
-  (k ~ A_Lens, a ~ dat, b ~ dat) =>
-  LabelOptic "datum" k (WithExportEnv dat red info) (WithExportEnv dat red info) a b
-  where
-  labelOptic = lens (\(WithExportEnv x _ _ _ _) -> x) $ \(WithExportEnv _ r sc ra i) d' ->
-    WithExportEnv d' r sc ra i
-
-instance
-  (k ~ A_Lens, a ~ red, b ~ red) =>
-  LabelOptic "redeemer" k (WithExportEnv dat red info) (WithExportEnv dat red info) a b
-  where
-  labelOptic = lens (\(WithExportEnv _ x _ _ _) -> x) $ \(WithExportEnv d _ sc ra i) r' ->
-    WithExportEnv d r' sc ra i
-
-instance
-  (k ~ A_Lens, a ~ ScriptContext, b ~ ScriptContext) =>
-  LabelOptic "context" k (WithExportEnv dat red info) (WithExportEnv dat red info) a b
-  where
-  labelOptic = lens (\(WithExportEnv _ _ x _ _) -> x) $ \(WithExportEnv d r _ ra i) sc' ->
-    WithExportEnv d r sc' ra i
-
-instance
-  (k ~ A_Lens, a ~ RawScriptExport, b ~ RawScriptExport) =>
-  LabelOptic "raws" k (WithExportEnv dat red info) (WithExportEnv dat red info) a b
-  where
-  labelOptic = lens (\(WithExportEnv _ _ _ x _) -> x) $ \(WithExportEnv d r sc _ i) raws' ->
-    WithExportEnv d r sc raws' i
-
-instance
-  (k ~ A_Lens, a ~ info, b ~ info) =>
-  LabelOptic "info" k (WithExportEnv dat red info) (WithExportEnv dat red info) a b
-  where
-  labelOptic = lens (\(WithExportEnv _ _ _ _ x) -> x) $ \(WithExportEnv d r sc ra _) i' ->
-    WithExportEnv d r sc ra i'
 
 data Applied
   = AppliedValidator Script Data Data Data
