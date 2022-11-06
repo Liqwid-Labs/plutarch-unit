@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+-- WithExportEnv defines record selectors that are needed for TH optic generation but are otherwise
+-- unused, tripping this warning.
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+
 module Plutarch.Test.Export (
   -- * Types
   ScriptParams (..),
@@ -70,6 +74,7 @@ import Test.Tasty.Providers (
   testFailed,
   testPassed,
  )
+ 
 
 {- | Typed parameters that are given to a script when testing. For minting
  policies, the redeemer is ignored; you can set it to '()' to keep the
@@ -84,6 +89,15 @@ data ScriptParams (datum :: Type) (redeemer :: Type) = ScriptParams
   }
 
 makeFieldLabelsNoPrefix ''ScriptParams
+
+-- Carries the environment for script test construction
+data WithExportEnv (datum :: Type) (redeemer :: Type) (info :: Type)
+  = WithExportEnv {
+    params :: ScriptParams datum redeemer,
+    exports :: ScriptExport info
+  }
+
+makeFieldLabelsNoPrefix ''WithExportEnv
 
 {- | A combination of (initial) script parameters, as well as any required
  parameters that should be passed to the linker when assembling tests.
@@ -329,30 +343,6 @@ instance IsTest Rigged where
               <> show logs
         (Right _, Runs) -> testPassed "Ran as expected"
   testOptions = Tagged []
-
--- Carries the environment for script test construction
-data WithExportEnv (datum :: Type) (redeemer :: Type) (info :: Type)
-  = WithExportEnv (ScriptParams datum redeemer) (ScriptExport info)
-
-instance
-  (k ~ A_Lens, a ~ ScriptParams datum redeemer, b ~ ScriptParams datum' redeemer') =>
-  LabelOptic "params" k (WithExportEnv datum redeemer info) (WithExportEnv datum' redeemer' info) a b
-  where
-  labelOptic = lens out $ \(WithExportEnv _ se) sp' ->
-    WithExportEnv sp' se
-    where
-      out :: WithExportEnv datum redeemer info -> ScriptParams datum redeemer
-      out (WithExportEnv sp _) = sp
-
-instance
-  (k ~ A_Lens, a ~ ScriptExport info, b ~ ScriptExport info) =>
-  LabelOptic "exports" k (WithExportEnv datum redeemer info) (WithExportEnv datum redeemer info) a b
-  where
-  labelOptic = lens out $ \(WithExportEnv sp _) se' ->
-    WithExportEnv sp se'
-    where
-      out :: WithExportEnv datum redeemer info -> ScriptExport info
-      out (WithExportEnv _ se) = se
 
 -- A script with 'burned in' parameters
 data PreparedTest
