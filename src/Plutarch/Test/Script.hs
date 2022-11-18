@@ -41,9 +41,8 @@ import Test.Tasty.Providers (
 import Plutarch.Evaluate (evalScript')
 import PlutusLedgerApi.V2 (
   Script,
- )
-import PlutusCore.Evaluation.Machine.ExBudget (ExBudget (ExBudget))
-import PlutusCore.Evaluation.Machine.ExBudget (ExMemory (ExMemory), ExCpu (ExCpu))
+  ExBudget (ExBudget),
+  ExMemory (ExMemory), ExCpu (ExCpu))
 import Test.Tasty (testGroup)
 
 --------------------------------------------------------------------------------
