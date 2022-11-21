@@ -40,9 +40,11 @@ import Test.Tasty.Providers (
 
 import Plutarch.Evaluate (evalScript')
 import PlutusLedgerApi.V2 (
-  Script,
   ExBudget (ExBudget),
-  ExMemory (ExMemory), ExCpu (ExCpu))
+  ExCPU (ExCPU),
+  ExMemory (ExMemory),
+  Script,
+ )
 import Test.Tasty (testGroup)
 
 --------------------------------------------------------------------------------
@@ -152,9 +154,9 @@ runScript script debug onSuccess = case scriptResult of
   (Right _, _, _) -> (ScriptSuccess, onSuccess)
   (Left err, _, _) -> (ScriptFailure, showError dTrace (show err))
   where
-    scriptResult = evalScript' maxBound script
-    (_, _, dTrace) = evalScript' maxBound debug
-    budget = ExBudget (ExCpu maxBound) (ExMemory maxBound)
+    scriptResult = evalScript' budget script
+    (_, _, dTrace) = evalScript' budget debug
+    budget = ExBudget (ExCPU maxBound) (ExMemory maxBound)
 
 showError :: [Text] -> String -> String
 showError traces err =
