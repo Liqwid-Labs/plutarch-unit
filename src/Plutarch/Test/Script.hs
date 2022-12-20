@@ -38,7 +38,7 @@ import Test.Tasty.Providers (
 
 --------------------------------------------------------------------------------
 
-import Plutarch.Evaluate (evalScript)
+import Plutarch.Evaluate (evalScriptHuge)
 import PlutusLedgerApi.V2 (
   Script,
  )
@@ -151,8 +151,8 @@ runScript script debug onSuccess = case scriptResult of
   (Right _, _, _) -> (ScriptSuccess, onSuccess)
   (Left err, _, _) -> (ScriptFailure, showError dTrace (show err))
   where
-    scriptResult = evalScript script
-    (_, _, dTrace) = evalScript debug
+    scriptResult = evalScriptHuge script
+    (_, _, dTrace) = evalScriptHuge debug
 
 showError :: [Text] -> String -> String
 showError traces err =
